@@ -1,5 +1,6 @@
 """Script to scrape UFCStats.com and build a csv"""
 
+import csv
 import datetime
 import string
 import requests
@@ -184,6 +185,18 @@ def clean_fighter_stats(raw: dict) -> dict:
         "sub_avg": parse_float(raw.get("Sub. Avg.")),
     }
 
+def save_to_csv(fighters: list[dict]):
+    if not fighters:
+        return
+
+    date_str = datetime.date.today().isoformat()
+    filename = f"data/fighters_{date_str}.csv"
+    
+    with open(filename, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fighters[0].keys())
+        writer.writeheader()
+        writer.writerows(fighters)
+
 
 def main():
     
@@ -197,7 +210,7 @@ def main():
             if raw:
                 fighters.append(clean_fighter_stats(raw))   
 
-    print(fighters[0])
+    save_to_csv(fighters)
 
 if __name__ == "__main__":
     main()
