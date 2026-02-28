@@ -1,8 +1,18 @@
-"""Script to scrape UFCStats.com and build a csv"""
+#!/usr/bin/env python3
+"""
+UFC fighter stats scraper.
+
+Scrapes fighter data from ufcstats.com and produces:
+  - data/fighters.csv  (fighter_id, name, nickname, wins, losses, ties,
+                        height_in, weight_lb, reach_in, stance, age,
+                        slpm, str_acc_dec, sapm, str_def_dec,
+                        td_avg, td_acc_dec, td_def_dec, sub_avg)
+"""
 
 import csv
 import datetime
 import string
+from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,6 +20,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 BASE_URL = "http://ufcstats.com"
 ALPHABET = string.ascii_lowercase  # "abcdefghijklmnopqrstuvwxyz"
 
+
+# ---------------------------------------------------------------------------
+# Scrapers
+# ---------------------------------------------------------------------------
 
 def get_fighter_ids_for_letter(letter: str) -> set[str]:
     """Fetch fighter IDs for a single letter."""
@@ -45,12 +59,16 @@ def get_fighter_ids_for_letter(letter: str) -> set[str]:
 def get_fighter_ids() -> set[str]:
     fighter_ids = set()
     
+    print("Fetching fighter IDs (10 workers)...")
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(get_fighter_ids_for_letter, letter): letter for letter in ALPHABET}
-        
+        done = 0
         for future in as_completed(futures):
+            done += 1
+            print(f"\r  Letter {done}/{len(ALPHABET)}", end="", flush=True)
             fighter_ids.update(future.result())
     
+    print(f"\n  Done. Found {len(fighter_ids)} unique fighter IDs.")
     return fighter_ids
 
 def get_fighter_stats(fighter_id: str) -> dict:
@@ -85,6 +103,11 @@ def get_fighter_stats(fighter_id: str) -> dict:
     except Exception as e:
         print(f"Error fetching stats for fighter_id {fighter_id}: {e}")
         return {}
+
+
+# ---------------------------------------------------------------------------
+# Data cleaning
+# ---------------------------------------------------------------------------
 
 def clean_fighter_stats(raw: dict) -> dict:
     # Helper function to convert percentages "50%" → 0.50
@@ -185,12 +208,19 @@ def clean_fighter_stats(raw: dict) -> dict:
         "sub_avg": parse_float(raw.get("Sub. Avg.")),
     }
 
+
+# ---------------------------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------------------------
+
 def save_to_csv(fighters: list[dict]):
     if not fighters:
         return
 
     date_str = datetime.date.today().isoformat()
-    filename = f"data/fighters_{date_str}.csv"
+    out_dir = Path(__file__).resolve().parent.parent / "data" / date_str
+    out_dir.mkdir(parents=True, exist_ok=True)
+    filename = out_dir / "fighters.csv"
     
     with open(filename, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fighters[0].keys())
@@ -198,19 +228,32 @@ def save_to_csv(fighters: list[dict]):
         writer.writerows(fighters)
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
 def main():
     
     fighter_ids = get_fighter_ids()
 
+    print(f"\nScraping stats for {len(fighter_ids)} fighters (20 workers)...")
     fighters = []
     with ThreadPoolExecutor(max_workers=20) as executor:
         futures = {executor.submit(get_fighter_stats, fid): fid for fid in fighter_ids}
+        done = 0
         for future in as_completed(futures):
+            done += 1
+            print(f"\r  Fighter {done}/{len(fighter_ids)}", end="", flush=True)
             raw = future.result()
             if raw:
                 fighters.append(clean_fighter_stats(raw))   
 
+    print(f"\n  Done. Collected stats for {len(fighters)} fighters.")
     save_to_csv(fighters)
+
+    date_str = datetime.date.today().isoformat()
+    out_dir = Path(__file__).resolve().parent.parent / "data" / date_str
+    print(f"\nDone. Files saved to {out_dir}/")
 
 if __name__ == "__main__":
     main()
