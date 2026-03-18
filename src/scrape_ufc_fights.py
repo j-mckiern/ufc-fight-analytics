@@ -6,10 +6,12 @@ Scrapes fight data from ufcstats.com and produces:
   - data/fights.csv       (fight_id, event_date, weight_class, method, round)
   - data/fight_stats.csv  (fight_id, fighter_id, result, sig_strikes, sig_attempted,
                             td, td_attempted, sub_attempts, control_time)
-
+  - data/{date}/pending_fighters.csv  (fighter_ids not yet in fighters.csv)
+  - data/{date}/scraper_errors.log    (error logging)
 """
 
 import csv
+import logging
 import re
 import time
 from datetime import datetime
@@ -24,6 +26,20 @@ EVENTS_URL = f"{BASE_URL}/statistics/events/completed?page=all"
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / datetime.now().strftime("%Y-%m-%d")
 MAX_WORKERS = 10
 MAX_RETRIES = 5
+
+# Create DATA_DIR before logging setup
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(DATA_DIR / "scraper_errors.log"),
+        logging.StreamHandler(),
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -263,10 +279,47 @@ def load_existing_ids(filepath: Path, id_column: str) -> set[str]:
     """Return the set of IDs already written to *filepath*."""
     ids: set[str] = set()
     if filepath.exists():
-        with open(filepath, newline="") as f:
-            for row in csv.DictReader(f):
-                ids.add(row[id_column])
+        try:
+            with open(filepath, newline="") as f:
+                for row in csv.DictReader(f):
+                    ids.add(row[id_column])
+            logger.debug(f"Loaded {len(ids)} existing IDs from {filepath}")
+        except Exception as e:
+            logger.error(f"Error loading IDs from {filepath}: {e}")
     return ids
+
+
+def save_pending_fighters(stats_path: Path, fighters_path: Path, out_path: Path):
+    """Extract fighter IDs from fight_stats.csv that aren't in fighters.csv."""
+    if not stats_path.exists():
+        logger.debug("fight_stats.csv doesn't exist yet")
+        return
+    
+    try:
+        # Load fighter IDs from both files
+        fighter_ids_in_fights = load_existing_ids(stats_path, "fighter_id")
+        fighter_ids_in_stats_db = load_existing_ids(fighters_path, "fighter_id")
+        
+        # Find missing
+        pending_ids = fighter_ids_in_fights - fighter_ids_in_stats_db
+        
+        if not pending_ids:
+            logger.info("All fighters already have stats data")
+            return
+        
+        # Save to CSV
+        with open(out_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["fighter_id"])
+            writer.writeheader()
+            for fighter_id in sorted(pending_ids):
+                writer.writerow({"fighter_id": fighter_id})
+        
+        logger.info(f"Saved {len(pending_ids)} pending fighters to {out_path}")
+        print(f"\n[*] {len(pending_ids)} fighters need stats. Saved to: {out_path}")
+    
+    except Exception as e:
+        logger.error(f"Error saving pending fighters: {e}")
+
 
 
 # ---------------------------------------------------------------------------
@@ -274,9 +327,13 @@ def load_existing_ids(filepath: Path, id_column: str) -> set[str]:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     fights_path = DATA_DIR / "fights.csv"
     stats_path = DATA_DIR / "fight_stats.csv"
+    pending_path = DATA_DIR / "pending_fighters.csv"
+
+    logger.info("=" * 60)
+    logger.info("Starting UFC fight data scraper")
+    logger.info(f"Output directory: {DATA_DIR}")
 
     session = requests.Session()
     session.headers.update({
@@ -285,8 +342,10 @@ def main() -> None:
 
     # ── Phase 1: events → fights.csv ──────────────────────────────────────
     print("Fetching events list...")
+    logger.info("Fetching events list...")
     events = scrape_events_list(session)
     print(f"Found {len(events)} completed events.")
+    logger.info(f"Found {len(events)} completed events")
 
     existing_fight_ids = load_existing_ids(fights_path, "fight_id")
     fights_existed = fights_path.exists() and fights_path.stat().st_size > 0
@@ -297,7 +356,7 @@ def main() -> None:
         try:
             return scrape_event_page(event["url"], event["date"], session)
         except Exception as exc:
-            print(f"\n    [!] Error on event {event['url']}: {exc}")
+            logger.error(f"Error scraping event {event['url']}: {exc}")
             return []
 
     print(f"  Scraping event pages ({MAX_WORKERS} workers)...")
@@ -323,6 +382,7 @@ def main() -> None:
             existing_fight_ids.add(fight["fight_id"])
 
     print(f"\n  Done. fights.csv - {len(existing_fight_ids)} fights total")
+    logger.info(f"fights.csv: {len(existing_fight_ids)} fights ({len(new_rows)} new)")
 
     # ── Phase 2: fight details → fight_stats.csv ─────────────────────────
     existing_stat_ids = load_existing_ids(stats_path, "fight_id")
@@ -334,6 +394,7 @@ def main() -> None:
     ]
     print(f"\nScraping {len(to_scrape)} fight-detail pages "
           f"({len(existing_stat_ids)} already done)...")
+    logger.info(f"Scraping {len(to_scrape)} fight details ({len(existing_stat_ids)} already done)")
 
     all_stat_rows: list[dict] = []
 
@@ -341,7 +402,7 @@ def main() -> None:
         try:
             return scrape_fight_detail(fight["fight_url"], session)
         except Exception as exc:
-            print(f"\n    [!] Error on fight {fight['fight_id']}: {exc}")
+            logger.error(f"Error scraping fight {fight['fight_id']}: {exc}")
             return []
 
     print(f"  Scraping fight pages ({MAX_WORKERS} workers)...")
@@ -365,7 +426,16 @@ def main() -> None:
 
     total_stats = load_existing_ids(stats_path, "fight_id")
     print(f"\n  Done. fight_stats.csv - {len(total_stats)} fights total")
+    logger.info(f"fight_stats.csv: {len(total_stats)} fights ({len(all_stat_rows)} new)")
+    
+    # ── Phase 3: Identify pending fighters for stats scraping ─────────────
+    print(f"\nIdentifying pending fighters...")
+    save_pending_fighters(stats_path, DATA_DIR / "fighters.csv", pending_path)
+    
+    logger.info(f"Fight scraper finished. Next step: run scrape-stats")
     print(f"\nDone. Files saved to {DATA_DIR}/")
+    print(f"Next: Run 'uv run src/scrape_ufc_stats.py --fighter-ids-file {pending_path}'")
+
 
 
 if __name__ == "__main__":
