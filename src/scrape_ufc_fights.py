@@ -3,9 +3,9 @@
 UFC fight data scraper.
 
 Scrapes fight data from ufcstats.com and produces:
-  - data/fights.csv       (fight_id, event_date, weight_class, method, round)
-  - data/fight_stats.csv  (fight_id, fighter_id, result, sig_strikes, sig_attempted,
-                            td, td_attempted, sub_attempts, control_time)
+  - data/{date}/raw/fights.csv       (fight_id, event_date, weight_class, method, round)
+  - data/{date}/raw/fight_stats.csv  (fight_id, fighter_id, result, sig_strikes, sig_attempted,
+                                       td, td_attempted, sub_attempts, control_time)
   - data/{date}/pending_fighters.csv  (fighter_ids not yet in fighters.csv)
   - data/{date}/scraper_errors.log    (error logging)
 """
@@ -27,8 +27,9 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data" / datetime.now().strf
 MAX_WORKERS = 10
 MAX_RETRIES = 5
 
-# Create DATA_DIR before logging setup
+# Create DATA_DIR and raw subdirectory before logging setup
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+(DATA_DIR / "raw").mkdir(exist_ok=True)
 
 # Setup logging
 logging.basicConfig(
@@ -327,8 +328,8 @@ def save_pending_fighters(stats_path: Path, fighters_path: Path, out_path: Path)
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    fights_path = DATA_DIR / "fights.csv"
-    stats_path = DATA_DIR / "fight_stats.csv"
+    fights_path = DATA_DIR / "raw" / "fights.csv"
+    stats_path = DATA_DIR / "raw" / "fight_stats.csv"
     pending_path = DATA_DIR / "pending_fighters.csv"
 
     logger.info("=" * 60)
@@ -430,7 +431,7 @@ def main() -> None:
     
     # ── Phase 3: Identify pending fighters for stats scraping ─────────────
     print(f"\nIdentifying pending fighters...")
-    save_pending_fighters(stats_path, DATA_DIR / "fighters.csv", pending_path)
+    save_pending_fighters(stats_path, DATA_DIR / "raw" / "fighters.csv", pending_path)
     
     logger.info(f"Fight scraper finished. Next step: run scrape-stats")
     print(f"\nDone. Files saved to {DATA_DIR}/")

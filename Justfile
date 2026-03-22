@@ -32,6 +32,12 @@ scrape-stats-targeted:
 validate:
     uv run src/validate_fighters.py
 
+# Run all notebooks in order (prep → train → predict) and save outputs
+run-notebooks:
+    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/fight_prediction_prep.ipynb
+    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/fight_prediction_model.ipynb
+    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/predict.ipynb
+
 # Clean data directory (use with caution!)
 clean:
     rm -rf data/

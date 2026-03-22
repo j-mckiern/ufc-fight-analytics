@@ -47,8 +47,8 @@ def main():
             print(f"[!] No data directory found. Have you run the scrapers?")
             sys.exit(1)
     
-    fight_stats_file = target_dir / "fight_stats.csv"
-    fighters_file = target_dir / "fighters.csv"
+    fight_stats_file = target_dir / "raw" / "fight_stats.csv"
+    fighters_file = target_dir / "raw" / "fighters.csv"
     
     print(f"\nValidating fighter coverage in {target_dir}/")
     print("=" * 60)

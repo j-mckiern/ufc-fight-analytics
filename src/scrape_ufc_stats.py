@@ -3,10 +3,10 @@
 UFC fighter stats scraper.
 
 Scrapes fighter data from ufcstats.com and produces:
-  - data/fighters.csv  (fighter_id, name, nickname, wins, losses, ties,
-                        height_in, weight_lb, reach_in, stance, age,
-                        slpm, str_acc_dec, sapm, str_def_dec,
-                        td_avg, td_acc_dec, td_def_dec, sub_avg)
+  - data/{date}/raw/fighters.csv  (fighter_id, name, nickname, wins, losses, ties,
+                                    height_in, weight_lb, reach_in, stance, age,
+                                    slpm, str_acc_dec, sapm, str_def_dec,
+                                    td_avg, td_acc_dec, td_def_dec, sub_avg)
   - data/{date}/scraper_errors.log  (detailed error logging)
   - data/{date}/failed_fighters.csv (fighters that failed to scrape)
 """
@@ -329,9 +329,11 @@ def save_to_csv(fighters: list[dict], out_dir: Path):
     if not fighters:
         return
 
-    filename = out_dir / "fighters.csv"
+    raw_dir = out_dir / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    filename = raw_dir / "fighters.csv"
     file_exists = filename.exists()
-    
+
     try:
         with open(filename, "a" if file_exists else "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fighters[0].keys())
@@ -415,7 +417,7 @@ def main():
         return
     
     # Load existing fighters to avoid duplicates
-    fighters_file = out_dir / "fighters.csv"
+    fighters_file = out_dir / "raw" / "fighters.csv"
     existing = load_existing_fighters(fighters_file)
     
     to_scrape = fighter_ids - existing
@@ -470,7 +472,7 @@ def main():
     
     # Coverage report
     total = len(existing) + len(fighters)
-    print(f"Coverage: {total} fighters in {out_dir}/fighters.csv")
+    print(f"Coverage: {total} fighters in {out_dir}/raw/fighters.csv")
     if failed_fighters:
         print(f"  ({len(failed_fighters)} failed - see {out_dir}/failed_fighters.csv)")
     logger.info(f"Scraper finished. Files saved to {out_dir}/")
