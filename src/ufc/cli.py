@@ -6,6 +6,12 @@ import json
 from ufc import config
 
 
+def cmd_scrape(args) -> None:
+    from ufc.scraping.pipeline import scrape_new
+
+    scrape_new()
+
+
 def cmd_prepare(args) -> None:
     from ufc.features.build import build_training_data, save_prepared
 
@@ -47,6 +53,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="ufc", description="UFC fight analytics")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    sub.add_parser(
+        "scrape", help="Incrementally scrape new events into data/raw"
+    ).set_defaults(func=cmd_scrape)
     sub.add_parser("prepare", help="Build prepared datasets from data/raw").set_defaults(
         func=cmd_prepare
     )
