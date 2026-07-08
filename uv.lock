@@ -1899,7 +1899,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
-    { name = "ipywidgets" },
     { name = "joblib" },
     { name = "jupyter" },
     { name = "matplotlib" },
@@ -1919,7 +1918,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
-    { name = "ipywidgets", specifier = ">=8.1" },
     { name = "joblib", specifier = ">=1.4" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "matplotlib", specifier = ">=3.10.8" },

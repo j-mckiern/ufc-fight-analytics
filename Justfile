@@ -1,45 +1,38 @@
-DATE := `date +%Y-%m-%d`
-
 default:
     @just --list
 
-# Run complete scraping pipeline (fights first, then stats for those fighters)
-scrape: scrape-fights scrape-stats-targeted
+# Incrementally scrape new events, fights, and fighter profiles into data/raw
+scrape:
+    uv run ufc scrape
 
-# Scrape fight data (events, fights, fight stats)
-scrape-fights:
-    uv run src/scrape_ufc_fights.py
+# Rebuild prepared datasets (train/test/fighter features) from data/raw
+prepare:
+    uv run ufc prepare
 
-# Scrape fighter stats for all discover via A-Z (legacy mode)
-scrape-stats-legacy:
-    uv run src/scrape_ufc_stats.py
+# Rebuild data and retrain the model (archives the previous bundle)
+train:
+    uv run ufc train
 
-# Scrape fighter stats for pending fighters only (targeted mode, recommended)
-scrape-stats-targeted:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    PENDING_FILE="data/{{DATE}}/pending_fighters.csv"
-    if [ -f "$PENDING_FILE" ]; then
-        echo "Scraping stats for fighters in $PENDING_FILE"
-        uv run src/scrape_ufc_stats.py --fighter-ids-file "$PENDING_FILE"
-    else
-        echo "[!] No pending_fighters.csv found at $PENDING_FILE"
-        echo "    Run: just scrape-fights"
-        exit 1
-    fi
+# Predict the next upcoming event's card (add --save via: just predict-card --save)
+predict-card *ARGS:
+    uv run ufc predict-card {{ARGS}}
 
-# Validate fighter ID coverage across CSV files
-validate:
-    uv run src/validate_fighters.py
+# Scrape results and reconcile saved predictions
+update-results *ARGS:
+    uv run ufc update-results {{ARGS}}
 
-# Run all notebooks in order (prep → train → predict) and save outputs
-run-notebooks:
-    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/fight_prediction_prep.ipynb
-    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/fight_prediction_model.ipynb
-    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/predict.ipynb
+# Show current model metadata
+model-info:
+    uv run ufc model-info
 
-# Clean data directory (use with caution!)
-clean:
-    rm -rf data/
-    @echo "Data directory cleaned"
+# Launch the Streamlit app
+app:
+    uv run streamlit run app/streamlit_app.py
 
+# Run the test suite
+test:
+    uv run pytest
+
+# Execute the exploration notebook in place
+notebook:
+    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/exploration.ipynb
