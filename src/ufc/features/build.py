@@ -151,6 +151,16 @@ def build_training_data(
     return TrainingData(dataset, train, test, fighter_features, params)
 
 
+def load_fighter_features(prepared_dir: Path | None = None) -> pd.DataFrame:
+    prepared_dir = (
+        Path(prepared_dir) if prepared_dir is not None else config.PREPARED_DIR
+    )
+    path = prepared_dir / "fighter_features.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found. Run `ufc prepare` first.")
+    return pd.read_csv(path)
+
+
 def save_prepared(data: TrainingData, prepared_dir: Path | None = None) -> Path:
     prepared_dir = (
         Path(prepared_dir) if prepared_dir is not None else config.PREPARED_DIR
