@@ -83,6 +83,21 @@ just update-results            # after the event: fetch results + score
 just test                      # run the test suite
 ```
 
+## Trying it out
+
+`just app` opens the Streamlit UI; a good walkthrough:
+
+1. **Matchup** — pick two fighters (try "Bruno Silva" to see duplicate-name
+   disambiguation) and a weight class; get a probability.
+2. **Fight Card** — select the next event; note the debut-fighter warning rows;
+   click *Save predictions*.
+3. **Model** — check the current model, metrics, and training date.
+4. **Review & Retrain** — after the event happens, click *Fetch results*,
+   review predicted vs actual, then *Approve & retrain*.
+
+Every step has a headless equivalent: `just scrape`, `just train`,
+`just predict-card --save`, `just update-results`, `just model-info`.
+
 ## Tech Stack
 
 - **Python 3.14** with uv for dependency management
