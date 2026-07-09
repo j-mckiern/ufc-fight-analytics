@@ -40,7 +40,7 @@ ufc-fight-analytics/
 │   ├── modeling/            # Training, model bundles, prediction, name lookup
 │   ├── tracking/            # Predictions store, result reconciliation, retrain
 │   └── cli.py               # `ufc` command-line entry point
-├── app/                     # Streamlit UI (matchup, card, review, model pages)
+├── app/                     # Streamlit UI (matchup, card, value-bets, review, model)
 ├── notebooks/exploration.ipynb  # EDA + model diagnostics (imports ufc.*)
 ├── tests/                   # pytest suite with synthetic + saved-HTML fixtures
 ├── data/
@@ -91,8 +91,11 @@ just test                      # run the test suite
    disambiguation) and a weight class; get a probability.
 2. **Fight Card** — select the next event; note the debut-fighter warning rows;
    click *Save predictions*.
-3. **Model** — check the current model, metrics, and training date.
-4. **Review & Retrain** — after the event happens, click *Fetch results*,
+3. **Value Bets** — pick the next event and a sportsbook; the model's win
+   probabilities are compared against that book's live odds (from fightodds.io)
+   to flag fights where the price offers positive expected value.
+4. **Model** — check the current model, metrics, and training date.
+5. **Review & Retrain** — after the event happens, click *Fetch results*,
    review predicted vs actual, then *Approve & retrain*.
 
 Every step has a headless equivalent: `just scrape`, `just train`,

@@ -1,0 +1,56 @@
+{
+  "sportsbooks": {
+    "edges": [
+      {"node": {"slug": "draftkings", "shortName": "DraftKings"}},
+      {"node": {"slug": "fanduel", "shortName": "FanDuel"}},
+      {"node": {"slug": "pinnacle", "shortName": "Pinnacle"}}
+    ]
+  },
+  "eventOfferTable": {
+    "name": "UFC 329: McGregor vs. Holloway 2",
+    "fightOffers": {
+      "edges": [
+        {
+          "node": {
+            "fighter1": {"firstName": "Conor", "lastName": "McGregor"},
+            "fighter2": {"firstName": "Max", "lastName": "Holloway"},
+            "bestOdds1": 195,
+            "bestOdds2": -186,
+            "isCancelled": false,
+            "straightOffers": {
+              "edges": [
+                {"node": {"sportsbook": {"slug": "draftkings", "shortName": "DraftKings"}, "outcome1": {"odds": 180}, "outcome2": {"odds": -220}}},
+                {"node": {"sportsbook": {"slug": "fanduel", "shortName": "FanDuel"}, "outcome1": {"odds": 195}, "outcome2": {"odds": -240}}},
+                {"node": {"sportsbook": {"slug": "pinnacle", "shortName": "Pinnacle"}, "outcome1": {"odds": 188}, "outcome2": null}}
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "fighter1": {"firstName": "Benoit", "lastName": "Saint-Denis"},
+            "fighter2": {"firstName": "Paddy", "lastName": "Pimblett"},
+            "bestOdds1": -135,
+            "bestOdds2": 133,
+            "isCancelled": false,
+            "straightOffers": {
+              "edges": [
+                {"node": {"sportsbook": {"slug": "draftkings", "shortName": "DraftKings"}, "outcome1": {"odds": -140}, "outcome2": {"odds": 118}}}
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "fighter1": {"firstName": "Jane", "lastName": "Doe"},
+            "fighter2": {"firstName": "Mary", "lastName": "Roe"},
+            "bestOdds1": null,
+            "bestOdds2": null,
+            "isCancelled": true,
+            "straightOffers": {"edges": []}
+          }
+        }
+      ]
+    }
+  }
+}

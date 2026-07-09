@@ -1,0 +1,9 @@
+{
+  "allEvents": {
+    "edges": [
+      {"node": {"pk": 8996, "name": "UFC 329: McGregor vs. Holloway 2", "date": "2026-07-11", "slug": "ufc-329", "promotion": {"shortName": "UFC"}}},
+      {"node": {"pk": 9616, "name": "BetCity Fight Nights 139", "date": "2026-07-08", "slug": "fng-139", "promotion": {"shortName": "FNG"}}},
+      {"node": {"pk": 9103, "name": "UFC Oklahoma: Usman vs. Du Plessis", "date": "2026-07-18", "slug": "ufc-oklahoma", "promotion": {"shortName": "UFC"}}}
+    ]
+  }
+}
